@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Page</title>
+</head>
+<body>
+    <h1>App Page</h1>
+    <p>This is the App route</p>
+    
+    <script>
+        // Get the 'apps' parameter from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const appsParam = urlParams.get('apps');
+        
+        // If apps parameter exists, redirect to that URL
+        if (appsParam) {
+            window.location.href = appsParam;
+        }
+    </script>
+</body>
+</html>
