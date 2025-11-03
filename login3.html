@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - ระบบบัญชีวัดวังตะแบกโภคาราม</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; }
+        .loading { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Login Page -->
+    <div id="loginPage" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                    <img src="https://lh7-rt.googleusercontent.com/sitesz/AClOY7rsyi34IyVp2poHtSg0XBH3VB9PdrqLJej9P2Riu-JxYLuBhv6cm0GoKfW0BriHjQ9mlQYDKhhhD85e0TMSzL2QvPEEWjZb4MFfnc7OB3pCDhlteHAN8HoJhBO7gcvBFDNr9AkjgYhCX4E4aVxhprtZ2OaXbAIsrd1mgrTxCGbwOPTthdw?key=JM-XNgSVv6ay9DoBtCRKnXch" alt="โลโก้วัด" class="w-full h-full object-contain" onerror="this.src='https://placehold.co/80x80/f0f9ff/3b82f6?text=LOGO'">
+                </div>
+                <!-- แก้ไขชื่อเรื่องให้สอดคล้องกัน -->
+                <h1 class="text-2xl font-bold text-gray-800 mb-2">ระบบบัญชีรายรับ-รายจ่าย</h1>
+                <h1 class="text-2xl font-bold text-gray-800 mb-2">วัดวังตะแบกโภคาราม</h1>
+                <p class="text-gray-600">กรุณาเข้าสู่ระบบเพื่อดำเนินการต่อ</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อผู้ใช้งาน</label>
+                    <input type="text" id="username" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่าน</label>
+                    <input type="password" id="password" required 
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                </div>
+                
+                <button type="submit" id="loginBtn" 
+                        class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-105 focus:ring-4 focus:ring-blue-200">
+                    <span id="loginBtnText">เข้าสู่ระบบ</span>
+                    <div id="loginSpinner" class="loading w-5 h-5 border-2 border-white border-t-transparent rounded-full mx-auto hidden"></div>
+                </button>
+            </form>
+            
+            <div id="loginError" class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden">
+                ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---!!! สำคัญ: กรุณาแก้ไข URL นี้ !!!---
+        // 1. ไปที่ Apps Script Editor
+        // 2. คลิก "Deploy" > "Manage deployments"
+        // 3. คัดลอก "Web app URL" (ที่ลงท้ายด้วย /exec)
+        // 4. นำมาวางแทนที่ 'YOUR_APPS_SCRIPT_URL' ด้านล่างนี้
+        // คุณได้ใส่ URL ถูกต้องแล้ว!
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyoYr3Jx_6XDmT8BMI4P-iJoY6y8qGZhnZg9RgttvE29b-aYcnhNewpf3-oox-M2aI79Q/exec';
+        // -----------------------------------------
+
+        const API_URL = WEB_APP_URL; // ใช้ URL เดียวกันสำหรับ API
+
+        function showError(message) {
+            console.error("ShowError:", message);
+            const loginError = document.getElementById('loginError');
+            if (loginError) {
+                loginError.textContent = message;
+                loginError.classList.remove('hidden');
+            }
+        }
+
+        // Enhanced API calls with caching and retry logic
+        async function apiCall(action, data = {}, useCache = false, retries = 3) {
+            // Cache logic is removed for login-only page
+            
+            for (let attempt = 0; attempt < retries; attempt++) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                    
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            action: action,
+                            ...data
+                        }),
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    return result;
+
+                } catch (error) {
+                    console.error(`API Error (attempt ${attempt + 1}):`, error);
+                    
+                    if (attempt === retries - 1) {
+                        if (error.name === 'AbortError') {
+                            throw new Error('การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่');
+                        }
+                        throw new Error('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่');
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+                }
+            }
+        }
+
+        // Login functionality
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginBtnText = document.getElementById('loginBtnText');
+            const loginSpinner = document.getElementById('loginSpinner');
+            const loginError = document.getElementById('loginError');
+            
+            // Show loading
+            loginBtnText.classList.add('hidden');
+            loginSpinner.classList.remove('hidden');
+            loginBtn.disabled = true;
+            loginError.classList.add('hidden');
+            
+            try {
+                const result = await apiCall('login', { username, password });
+                
+                if (result.success) {
+                    // Store user info in session storage
+                    sessionStorage.setItem('loggedInUser', username);
+                    
+                    // Redirect to dashboard page
+                    // ส่งต่อไปยังหน้าแดชบอร์ดโดยใช้ URL ของ Web App + parameter
+                    window.location.href = WEB_APP_URL + '?page=dashboard'; 
+                } else {
+                    loginError.textContent = result.message || "ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง";
+                    loginError.classList.remove('hidden');
+                }
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                // Hide loading
+                loginBtnText.classList.remove('hidden');
+                loginSpinner.classList.add('hidden');
+                loginBtn.disabled = false;
+            }
+        });
+
+        // Check if already logged in (e.g., user pressed Back button)
+        document.addEventListener('DOMContentLoaded', () => {
+            if (sessionStorage.getItem('loggedInUser')) {
+                // If already logged in, go to dashboard
+                window.location.href = WEB_APP_URL + '?page=dashboard';
+            }
+        });
+    </script>
+</body>
+</html>
+
